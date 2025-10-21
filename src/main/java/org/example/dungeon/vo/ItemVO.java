@@ -2,6 +2,7 @@ package org.example.dungeon.vo;
 
 
 import lombok.Data;
+import org.example.dungeon.ItemConsumeWayVO;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,7 +43,24 @@ public class ItemVO {
     /**
      * 以下为计算填入字段
      */
+    /**
+     * 该物品计算完成
+     */
     private boolean done;
+    /**
+     * 以商品买入价计，每工人最高产值
+     */
     private float buyPricePerWorker;
+    /**
+     * 以商品买入价计，每工人最高产值的具体实施过程
+     */
+    private List<ItemConsumeWayVO> buyPriceExpression;
+    /**
+     * 以商品卖出价计，每工人最高产值
+     */
     private float sellPricePerWorker;
+    /**
+     * 以商品卖出价计，每工人最高产值的具体实施过程
+     */
+    private List<ItemConsumeWayVO> sellPriceExpression;
 }
