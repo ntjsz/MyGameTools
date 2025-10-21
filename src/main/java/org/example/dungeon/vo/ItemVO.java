@@ -48,19 +48,11 @@ public class ItemVO {
      */
     private boolean done;
     /**
-     * 以商品买入价计，每工人最高产值
+     * 以商品买入价计，每工人最高产值的方案
      */
-    private float buyPricePerWorker;
-    /**
-     * 以商品买入价计，每工人最高产值的具体实施过程
-     */
-    private List<ItemConsumeWayVO> buyPriceExpression;
+    private ItemConsumeSolution buyPriceSolution;
     /**
      * 以商品卖出价计，每工人最高产值
      */
-    private float sellPricePerWorker;
-    /**
-     * 以商品卖出价计，每工人最高产值的具体实施过程
-     */
-    private List<ItemConsumeWayVO> sellPriceExpression;
+    private ItemConsumeSolution sellPriceSolution;
 }
