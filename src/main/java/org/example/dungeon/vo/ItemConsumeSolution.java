@@ -11,9 +11,9 @@ import java.util.List;
 public class ItemConsumeSolution {
     private List<ItemConsumeWayVO> solutionStepList;
     private float pricePerWorker;
+    private int workerCount;
 
-    public ItemConsumeSolution(List<ItemConsumeWayVO> solutionStepList, float pricePerWorker) {
-        this.solutionStepList = new ArrayList<>(solutionStepList);
-        this.pricePerWorker = pricePerWorker;
+    public ItemConsumeSolution() {
+        this.pricePerWorker = -1;
     }
 }
