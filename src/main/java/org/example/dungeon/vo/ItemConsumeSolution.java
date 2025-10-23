@@ -2,6 +2,7 @@ package org.example.dungeon.vo;
 
 import lombok.Data;
 import org.example.dungeon.ItemConsumeWayVO;
+import org.example.dungeon.enums.ItemConsumeSolutionEnum;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,11 +10,7 @@ import java.util.List;
 
 @Data
 public class ItemConsumeSolution {
-    private List<ItemConsumeWayVO> solutionStepList;
+    private ItemConsumeSolutionTreeNode root;
+    private ItemConsumeSolutionEnum solutionEnum;
     private float pricePerWorker;
-    private int workerCount;
-
-    public ItemConsumeSolution() {
-        this.pricePerWorker = -1;
-    }
 }

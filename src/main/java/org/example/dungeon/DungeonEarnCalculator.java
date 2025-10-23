@@ -1,13 +1,13 @@
 package org.example.dungeon;
 
-import com.google.common.collect.Lists;
-import lombok.Data;
+import org.apache.commons.collections4.CollectionUtils;
+import org.example.dungeon.enums.ItemConsumeSolutionEnum;
 import org.example.dungeon.enums.ItemConsumeWayEnum;
 import org.example.dungeon.vo.ConsumeExpressionTermVO;
 import org.example.dungeon.vo.ItemConsumeSolution;
+import org.example.dungeon.vo.ItemConsumeSolutionTreeNode;
 import org.example.dungeon.vo.ItemVO;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -27,82 +27,88 @@ public class DungeonEarnCalculator {
 
 
     private void handleOneItem(ItemVO itemVO) {
-        if (itemVO.isDone()) {
-            return;
-        }
-
         if (itemVO.isCanTrade()) {
-            //以商品买入价计
-            ItemConsumeSolution buyPriceSolution = new ItemConsumeSolution();
-            itemVO.setBuyPriceSolution(buyPriceSolution);
-            calcBestSolution(itemVO, buyPriceSolution, itemVO.getBuyPrice());
-
-
-            //以商品卖出价计
+            itemVO.setSellSolution(calcBestSolution(itemVO, ItemConsumeSolutionEnum.SELL));
+            itemVO.setProduceSolution(calcBestSolution(itemVO, ItemConsumeSolutionEnum.PRODUCE));
         } else {
-
-        }
-
-    }
-
-    private void calcBestSolution(ItemVO itemVO, ItemConsumeSolution bestSolution, int itemPrice) {
-        List<ConsumeExpressionTermVO> consumeExpression = itemVO.getConsumeExpression();
-        List<ItemConsumeWayVO> currentStepList = new ArrayList<>();
-
-        for (int i = 0; i < consumeExpression.size(); i++) {
-
+            // 无法直接购买的商品，只计算一个生产的最佳方案
+            itemVO.setProduceSolution(calcBestSolution(itemVO, ItemConsumeSolutionEnum.PRODUCE));
         }
     }
 
+    private ItemConsumeSolution calcBestSolution(ItemVO itemVO, ItemConsumeSolutionEnum solutionEnum) {
+        ItemConsumeSolution bestSolution = new ItemConsumeSolution();
+        bestSolution.setSolutionEnum(solutionEnum);
+        bestSolution.setPricePerWorker(0);
+
+        ItemConsumeSolutionTreeNode root = new ItemConsumeSolutionTreeNode();
+        root.setItemName(itemVO.getItemName());
+        root.setWayEnum(ItemConsumeWayEnum.PRODUCE);
+
+        calcBestSolutionHelper(bestSolution, root, true);
+        return bestSolution;
+    }
+
+    /**
+     * 递归构建solution tree
+     */
     private void calcBestSolutionHelper(ItemConsumeSolution bestSolution,
-                                        List<ConsumeExpressionTermVO> consumeExpression,
-                                        List<ItemConsumeWayVO> currentStepList,
-                                        int itemPrice, int i) {
-        if (i >= consumeExpression.size()) {
-            //no more step, calc solution
-            return;
-        } else {
-            String itemName = consumeExpression.get(i).getItemName();
-            ItemVO itemVO = itemVOMap.get(itemName);
-            handleOneItem(itemVO);
-            if (itemVO.isCanTrade()) {
-                // 购买
-                currentStepList.add(new ItemConsumeWayVO(itemName, ItemConsumeWayEnum.BUY));
-                calcBestSolutionHelper(bestSolution, consumeExpression, currentStepList, itemPrice, i + 1);
-                currentStepList.remove(currentStepList.size() - 1);
-                // 制作
-                currentStepList.add(new ItemConsumeWayVO(itemName, ItemConsumeWayEnum.PRODUCE));
-                calcBestSolutionHelper(bestSolution, consumeExpression, currentStepList, itemPrice, i + 1);
-                currentStepList.remove(currentStepList.size() - 1);
-            } else {
-                // 不能交易，只能直接购买
-                currentStepList.add(new ItemConsumeWayVO(itemName, ItemConsumeWayEnum.BUY));
-                calcBestSolutionHelper(bestSolution, consumeExpression, currentStepList, itemPrice, i + 1);
-                currentStepList.remove(currentStepList.size() - 1);
+                                        ItemConsumeSolutionTreeNode parentNode,
+                                        boolean finalNode) {
+        List<ConsumeExpressionTermVO> consumeExpression = itemVOMap.get(parentNode.getItemName()).getConsumeExpression();
+        if (CollectionUtils.isEmpty(consumeExpression)) {
+            if (finalNode) {
+                compareAndSetBestSolutionAtFinalNode(bestSolution, parentNode);
             }
+            return;
+        }
+
+        List<ItemConsumeSolutionTreeNode> childrenNodeList = parentNode.getChildren();
+        for (ConsumeExpressionTermVO termVO : consumeExpression) {
+            ItemConsumeSolutionTreeNode treeNode = new ItemConsumeSolutionTreeNode();
+            treeNode.setParent(parentNode);
+            childrenNodeList.add(treeNode);
+
+            String itemName = termVO.getItemName();
+            treeNode.setItemName(itemName);
+        }
+
+        calcBestSolutionHelper2(bestSolution, parentNode, finalNode, consumeExpression, 0);
+    }
+
+
+    /**
+     * 递归构建consumeExpression的所有ItemConsumeWayEnum.PRODUCE or BUY 组合
+     */
+    private void calcBestSolutionHelper2(ItemConsumeSolution bestSolution,
+                                         ItemConsumeSolutionTreeNode parentNode,
+                                         boolean finalNode,
+                                         List<ConsumeExpressionTermVO> consumeExpression,
+                                         int index) {
+        if (index >= consumeExpression.size()) {
+            for (int i = 0; i < consumeExpression.size(); i++) {
+                finalNode = finalNode && (i == consumeExpression.size() - 1);
+                calcBestSolutionHelper(bestSolution, parentNode, finalNode);
+            }
+            return;
+        }
+
+        ItemVO itemVO = itemVOMap.get(consumeExpression.get(index).getItemName());
+        ItemConsumeSolutionTreeNode treeNode = parentNode.getChildren().get(index);
+        treeNode.setWayEnum(ItemConsumeWayEnum.PRODUCE);
+        calcBestSolutionHelper2(bestSolution, treeNode, finalNode, consumeExpression, index + 1);
+        if (itemVO.isCanTrade()) {
+            treeNode.setWayEnum(ItemConsumeWayEnum.BUY);
+            calcBestSolutionHelper2(bestSolution, treeNode, finalNode, consumeExpression, index + 1);
         }
     }
 
-    private void calcBestSolutionFinalStep(ItemConsumeSolution bestSolution,
-                                           List<ConsumeExpressionTermVO> consumeExpression,
-                                           List<ItemConsumeWayVO> currentStepList,
-                                           int itemPrice) {
-        float priceTotal = itemPrice;
-        int workerCount = 1;
-        for (int i = 0; i < consumeExpression.size(); i++) {
-            ConsumeExpressionTermVO termVO = consumeExpression.get(i);
-            ItemVO itemVO = itemVOMap.get(termVO.getItemName());
-            ItemConsumeWayEnum wayEnum = currentStepList.get(i).getWayEnum();
-            if (wayEnum == ItemConsumeWayEnum.BUY) {
-                priceTotal = priceTotal - itemVO.getBuyPrice() * termVO.getCount();
-            } else {
-                priceTotal = priceTotal -
-                        itemVO.getBuyPriceSolution().getPricePerWorker()
-                                * itemVO.getBuyPriceSolution().getWorkerCount()
-                                * termVO.getCount();
-                workerCount = workerCount + itemVO.getBuyPriceSolution().getWorkerCount() * termVO.getCount();
-            }
-        }
-        float currentPricePerWorker = 
+
+    /**
+     * 更新最佳解决方案
+     */
+    private void compareAndSetBestSolutionAtFinalNode(ItemConsumeSolution bestSolution,
+                                                      ItemConsumeSolutionTreeNode parentNode) {
+        System.out.println("good");
     }
 }

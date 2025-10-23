@@ -42,17 +42,12 @@ public class ItemVO {
 
     /**
      * 以下为计算填入字段
+     * /**
+     * 制作该商品售卖赚钱的方案
      */
+    private ItemConsumeSolution sellSolution;
     /**
-     * 该物品计算完成
+     * 生成该商品满足需求的方案
      */
-    private boolean done;
-    /**
-     * 以商品买入价计，每工人最高产值的方案
-     */
-    private ItemConsumeSolution buyPriceSolution;
-    /**
-     * 以商品卖出价计，每工人最高产值
-     */
-    private ItemConsumeSolution sellPriceSolution;
+    private ItemConsumeSolution produceSolution;
 }
