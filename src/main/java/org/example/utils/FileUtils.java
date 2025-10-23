@@ -3,6 +3,7 @@ package org.example.utils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -29,8 +30,12 @@ public class FileUtils {
     }
 
     private static Path convertResourceToPath(String... filePath) {
-        String path = Arrays.stream(filePath).collect(Collectors.joining(FileSystems.getDefault().getSeparator()));
+        String path = Arrays.stream(filePath).collect(Collectors.joining("/"));
         URL resource = FileUtils.class.getClassLoader().getResource(path);
-        return Paths.get(resource.getPath());
+        try {
+            return Paths.get(resource.toURI());
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -39,7 +39,7 @@ public class DungeonEarnCalculator {
     private ItemConsumeSolution calcBestSolution(ItemVO itemVO, ItemConsumeSolutionEnum solutionEnum) {
         ItemConsumeSolution bestSolution = new ItemConsumeSolution();
         bestSolution.setSolutionEnum(solutionEnum);
-        bestSolution.setPricePerWorker(0);
+        bestSolution.setPricePerWorker(Integer.MIN_VALUE);
 
         ItemConsumeSolutionTreeNode root = new ItemConsumeSolutionTreeNode();
         root.setItemName(itemVO.getItemName());
@@ -56,7 +56,8 @@ public class DungeonEarnCalculator {
                                         ItemConsumeSolutionTreeNode parentNode,
                                         boolean finalNode) {
         List<ConsumeExpressionTermVO> consumeExpression = itemVOMap.get(parentNode.getItemName()).getConsumeExpression();
-        if (CollectionUtils.isEmpty(consumeExpression)) {
+        if (CollectionUtils.isEmpty(consumeExpression)
+                || parentNode.getWayEnum() == ItemConsumeWayEnum.BUY) { // 直接购买就不需要构建children了
             if (finalNode) {
                 compareAndSetBestSolutionAtFinalNode(bestSolution, parentNode);
             }
@@ -86,9 +87,10 @@ public class DungeonEarnCalculator {
                                          List<ConsumeExpressionTermVO> consumeExpression,
                                          int index) {
         if (index >= consumeExpression.size()) {
-            for (int i = 0; i < consumeExpression.size(); i++) {
-                finalNode = finalNode && (i == consumeExpression.size() - 1);
-                calcBestSolutionHelper(bestSolution, parentNode, finalNode);
+            List<ItemConsumeSolutionTreeNode> children = parentNode.getChildren();
+            for (int i = 0; i < children.size(); i++) {
+                finalNode = finalNode && (i == children.size() - 1);
+                calcBestSolutionHelper(bestSolution, children.get(i), finalNode);
             }
             return;
         }
@@ -96,10 +98,10 @@ public class DungeonEarnCalculator {
         ItemVO itemVO = itemVOMap.get(consumeExpression.get(index).getItemName());
         ItemConsumeSolutionTreeNode treeNode = parentNode.getChildren().get(index);
         treeNode.setWayEnum(ItemConsumeWayEnum.PRODUCE);
-        calcBestSolutionHelper2(bestSolution, treeNode, finalNode, consumeExpression, index + 1);
+        calcBestSolutionHelper2(bestSolution, parentNode, finalNode, consumeExpression, index + 1);
         if (itemVO.isCanTrade()) {
             treeNode.setWayEnum(ItemConsumeWayEnum.BUY);
-            calcBestSolutionHelper2(bestSolution, treeNode, finalNode, consumeExpression, index + 1);
+            calcBestSolutionHelper2(bestSolution, parentNode, finalNode, consumeExpression, index + 1);
         }
     }
 
@@ -109,6 +111,83 @@ public class DungeonEarnCalculator {
      */
     private void compareAndSetBestSolutionAtFinalNode(ItemConsumeSolution bestSolution,
                                                       ItemConsumeSolutionTreeNode parentNode) {
-        System.out.println("good");
+        ItemConsumeSolutionTreeNode root = parentNode;
+        while (root.getParent() != null) {
+            root = root.getParent();
+        }
+
+
+        ItemVO itemVO = itemVOMap.get(root.getItemName());
+        // root must be ItemConsumeWayEnum.PRODUCE
+        int cost = 0;
+        int worker = 1;
+
+        List<ConsumeExpressionTermVO> consumeExpression = itemVO.getConsumeExpression();
+        List<ItemConsumeSolutionTreeNode> children = root.getChildren();
+        for (int i = 0; i < children.size(); i++) {
+            ConsumeExpressionTermVO termVO = consumeExpression.get(i);
+            ItemConsumeSolutionTreeNode child = children.get(i);
+            cost = cost + termVO.getCount() * calcCost(child);
+            worker = worker + termVO.getCount() * calcWorker(child);
+        }
+
+        int price = bestSolution.getSolutionEnum() == ItemConsumeSolutionEnum.PRODUCE ?
+                itemVO.getBuyPrice() : itemVO.getSellPrice();
+        float pricePerWorker = (float) (itemVO.getProduceCount() * (price - cost)) / worker;
+        if (pricePerWorker > bestSolution.getPricePerWorker()) {
+            bestSolution.setPricePerWorker(pricePerWorker);
+            bestSolution.setRoot(copyNode(root, null));
+        }
+    }
+
+
+    private int calcCost(ItemConsumeSolutionTreeNode treeNode) {
+        ItemVO itemVO = itemVOMap.get(treeNode.getItemName());
+        ItemConsumeWayEnum wayEnum = treeNode.getWayEnum();
+        if (wayEnum == ItemConsumeWayEnum.BUY) {
+            return itemVO.getBuyPrice();
+        }
+
+
+        int cost = 0;
+
+        List<ConsumeExpressionTermVO> consumeExpression = itemVO.getConsumeExpression();
+        List<ItemConsumeSolutionTreeNode> children = treeNode.getChildren();
+        for (int i = 0; i < consumeExpression.size(); i++) {
+            ConsumeExpressionTermVO termVO = consumeExpression.get(i);
+            ItemConsumeSolutionTreeNode child = children.get(i);
+            cost = cost + termVO.getCount() * calcCost(child);
+        }
+        return cost;
+    }
+
+
+    private int calcWorker(ItemConsumeSolutionTreeNode treeNode) {
+        ItemVO itemVO = itemVOMap.get(treeNode.getItemName());
+        ItemConsumeWayEnum wayEnum = treeNode.getWayEnum();
+        if (wayEnum == ItemConsumeWayEnum.BUY) {
+            return 0;
+        }
+        int worker = 1;
+
+        List<ConsumeExpressionTermVO> consumeExpression = itemVO.getConsumeExpression();
+        List<ItemConsumeSolutionTreeNode> children = treeNode.getChildren();
+        for (int i = 0; i < consumeExpression.size(); i++) {
+            ConsumeExpressionTermVO termVO = consumeExpression.get(i);
+            ItemConsumeSolutionTreeNode child = children.get(i);
+            worker = worker + termVO.getCount() * calcWorker(child);
+        }
+        return worker;
+    }
+
+    private ItemConsumeSolutionTreeNode copyNode(ItemConsumeSolutionTreeNode treeNode, ItemConsumeSolutionTreeNode parentCopy) {
+        ItemConsumeSolutionTreeNode copy = new ItemConsumeSolutionTreeNode();
+        copy.setItemName(treeNode.getItemName());
+        copy.setParent(parentCopy);
+        copy.setWayEnum(treeNode.getWayEnum());
+        for (ItemConsumeSolutionTreeNode child : treeNode.getChildren()) {
+            copy.getChildren().add(copyNode(child, copy));
+        }
+        return copy;
     }
 }
