@@ -8,6 +8,7 @@ import org.example.dungeon.vo.ItemConsumeSolution;
 import org.example.dungeon.vo.ItemConsumeSolutionTreeNode;
 import org.example.dungeon.vo.ItemVO;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -55,6 +56,10 @@ public class DungeonEarnCalculator {
     private void calcBestSolutionHelper(ItemConsumeSolution bestSolution,
                                         ItemConsumeSolutionTreeNode parentNode,
                                         boolean finalNode) {
+        if (parentNode.getWayEnum() == ItemConsumeWayEnum.BUY) {
+            parentNode.setChildren(new ArrayList<>());
+        }
+
         List<ConsumeExpressionTermVO> consumeExpression = itemVOMap.get(parentNode.getItemName()).getConsumeExpression();
         if (CollectionUtils.isEmpty(consumeExpression)
                 || parentNode.getWayEnum() == ItemConsumeWayEnum.BUY) { // 直接购买就不需要构建children了
@@ -64,7 +69,7 @@ public class DungeonEarnCalculator {
             return;
         }
 
-        List<ItemConsumeSolutionTreeNode> childrenNodeList = parentNode.getChildren();
+        List<ItemConsumeSolutionTreeNode> childrenNodeList = new ArrayList<>();
         for (ConsumeExpressionTermVO termVO : consumeExpression) {
             ItemConsumeSolutionTreeNode treeNode = new ItemConsumeSolutionTreeNode();
             treeNode.setParent(parentNode);
@@ -73,6 +78,7 @@ public class DungeonEarnCalculator {
             String itemName = termVO.getItemName();
             treeNode.setItemName(itemName);
         }
+        parentNode.setChildren(childrenNodeList);
 
         calcBestSolutionHelper2(bestSolution, parentNode, finalNode, consumeExpression, 0);
     }
