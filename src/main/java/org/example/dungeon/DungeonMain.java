@@ -7,6 +7,7 @@ import org.example.dungeon.vo.InputExcelVO;
 import org.example.dungeon.vo.ItemVO;
 import org.example.utils.FileUtils;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -17,6 +18,7 @@ import java.util.regex.Pattern;
 public class DungeonMain {
 
     private static final String ROOT_DIR = "dungeon";
+    private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("0.####");
 
     public static void main(String[] args) {
         DungeonMain main = new DungeonMain();
@@ -24,13 +26,14 @@ public class DungeonMain {
     }
 
     public void execute() {
-        List<String> lines = FileUtils.readFileAllLines(ROOT_DIR, "input.csv");
-        List<InputExcelVO> inputExcelVOList = parseInputExcel(lines);
+        List<String> inputLines = FileUtils.readFileAllLines(ROOT_DIR, "input.csv");
+        List<InputExcelVO> inputExcelVOList = parseInputExcel(inputLines);
         List<ItemVO> itemVOList = convertToItemVOList(inputExcelVOList);
 
         DungeonEarnCalculator calculator = new DungeonEarnCalculator();
         calculator.calc(itemVOList);
-        System.out.println(1);
+        List<String> outputLines = convertToOutputExcel(itemVOList);
+        FileUtils.writeAllLinesToFile(outputLines, ROOT_DIR, "output.csv");
     }
 
     private List<InputExcelVO> parseInputExcel(List<String> lines) {
@@ -108,4 +111,38 @@ public class DungeonMain {
 
         return result;
     }
+
+    private List<String> convertToOutputExcel(List<ItemVO> itemVOList) {
+        List<String> lines = new ArrayList<>();
+        lines.add("物品名称,工人名称,售卖最佳价格每工人,售卖方案,生产最佳价格每工人,生产方案");
+        for (ItemVO itemVO : itemVOList) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(itemVO.getItemName());
+            sb.append(',');
+            sb.append(itemVO.getWorker());
+            sb.append(',');
+            if (itemVO.getSellSolution() != null) {
+                sb.append(formatFloat(itemVO.getSellSolution().getPricePerWorker()));
+            }
+            sb.append(',');
+            if (itemVO.getSellSolution() != null) {
+                sb.append(itemVO.getSellSolution().getSolutionBrief());
+            }
+            sb.append(',');
+            if (itemVO.getProduceSolution() != null) {
+                sb.append(formatFloat(itemVO.getProduceSolution().getPricePerWorker()));
+            }
+            sb.append(',');
+            if (itemVO.getProduceSolution() != null) {
+                sb.append(itemVO.getProduceSolution().getSolutionBrief());
+            }
+            lines.add(sb.toString());
+        }
+        return lines;
+    }
+
+    private String formatFloat(float f) {
+        return DECIMAL_FORMAT.format(f);
+    }
+
 }

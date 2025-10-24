@@ -47,6 +47,7 @@ public class DungeonEarnCalculator {
         root.setWayEnum(ItemConsumeWayEnum.PRODUCE);
 
         calcBestSolutionHelper(bestSolution, root, true);
+        calcSolutionBrief(bestSolution);
         return bestSolution;
     }
 
@@ -195,5 +196,50 @@ public class DungeonEarnCalculator {
             copy.getChildren().add(copyNode(child, copy));
         }
         return copy;
+    }
+
+
+    private void calcSolutionBrief(ItemConsumeSolution solution) {
+        if (solution == null) {
+            return;
+        }
+        ItemConsumeSolutionTreeNode root = solution.getRoot();
+
+        List<ConsumeExpressionTermVO> list = new ArrayList<>();
+        solutionStringHelper(root, 1, list);
+
+        if (list.isEmpty()) {
+            solution.setSolutionBrief("生产全部");
+        } else {
+            StringBuilder sb = new StringBuilder();
+            sb.append("购买：");
+            for (ConsumeExpressionTermVO termVO : list) {
+                sb.append(Integer.valueOf(termVO.getCount()));
+                sb.append(termVO.getItemName());
+                sb.append("，");
+            }
+            sb.append("其余生产");
+            solution.setSolutionBrief(sb.toString());
+        }
+    }
+
+    private void solutionStringHelper(ItemConsumeSolutionTreeNode node, int multi, List<ConsumeExpressionTermVO> list) {
+        if (node == null) {
+            return;
+        }
+        if (node.getWayEnum() == ItemConsumeWayEnum.BUY) {
+            ConsumeExpressionTermVO termVO = new ConsumeExpressionTermVO();
+            termVO.setCount(multi);
+            termVO.setItemName(node.getItemName());
+            list.add(termVO);
+        } else {
+            List<ConsumeExpressionTermVO> consumeExpression = itemVOMap.get(node.getItemName()).getConsumeExpression();
+            List<ItemConsumeSolutionTreeNode> children = node.getChildren();
+            for (int i = 0; i < children.size(); i++) {
+                ItemConsumeSolutionTreeNode child = children.get(i);
+                ConsumeExpressionTermVO termVO = consumeExpression.get(i);
+                solutionStringHelper(child, termVO.getCount() * multi, list);
+            }
+        }
     }
 }

@@ -47,7 +47,7 @@ public class ItemVO {
      */
     private ItemConsumeSolution sellSolution;
     /**
-     * 生成该商品满足需求的方案
+     * 生产该商品满足需求的方案
      */
     private ItemConsumeSolution produceSolution;
 }

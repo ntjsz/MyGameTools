@@ -5,10 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -26,6 +23,15 @@ public class FileUtils {
         } catch (IOException e) {
             log.error("readFileAllLines error", e);
             return new ArrayList<>();
+        }
+    }
+
+    public static void writeAllLinesToFile(List<String> outputLines, String... filePath) {
+        Path path = convertResourceToPath(filePath);
+        try {
+            Files.write(path, outputLines, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+        } catch (IOException e) {
+            log.error("writeAllLinesToFile error", e);
         }
     }
 

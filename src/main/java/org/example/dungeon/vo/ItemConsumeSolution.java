@@ -9,4 +9,5 @@ public class ItemConsumeSolution {
     private ItemConsumeSolutionTreeNode root;
     private ItemConsumeSolutionEnum solutionEnum;
     private float pricePerWorker;
+    private String solutionBrief;
 }
