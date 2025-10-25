@@ -2,9 +2,7 @@ package org.example.dungeon.vo;
 
 
 import lombok.Data;
-import org.example.dungeon.ItemConsumeWayVO;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Data

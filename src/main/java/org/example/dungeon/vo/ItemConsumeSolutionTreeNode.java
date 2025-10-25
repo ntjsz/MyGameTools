@@ -22,4 +22,9 @@ public class ItemConsumeSolutionTreeNode {
      * 工人产出or直接购买
      */
     private ItemConsumeWayEnum wayEnum;
+    /**
+     * 如果任一爷爷节点是ItemConsumeWayEnum.BUY，当前节点可跳过
+     * 因为爷爷节点直接购买的话，所有孙子节点都不需要进行任何计算
+     */
+    private boolean skip;
 }
